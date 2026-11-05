@@ -16,45 +16,36 @@ the card remains mounted.
 
 ## Install
 
-Requires Paseo with plugin support on both the daemon and client.
-
-Install directly from GitHub:
+Requires Paseo with plugin support on both the daemon and client, and `jq` and
+`git` on the daemon host. Run on the daemon host:
 
 ```sh
-paseo plugin add https://github.com/dnntminh/paseo-tool-ui-plugin.git
+curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s install
 ```
 
-Paseo downloads and manages its own copy on the daemon host. No manual clone is needed.
+This adds the plugin from GitHub (Paseo manages its own copy) and the Claude Code
+hooks for Bash changes. To remove both:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s uninstall
+```
 
 In Paseo's appearance settings, select **Tool call display → Full detail** to
 show individual tool cards.
 
 ### Bash changes (Claude only)
 
-Install the Claude Code hooks on the daemon host, from the plugin directory
-(`paseo plugin ls` shows it), with `jq` and `git` on the path:
-
-```sh
-sh hooks/claude-hooks.sh install
-```
-
-This copies `paseo-tool-ui-snapshot.sh` to `~/.claude/hooks/` and adds a
+The install command copies `paseo-tool-ui-snapshot.sh` to `~/.claude/hooks/` and adds a
 `PreToolUse`, `PostToolUse` and `PostToolUseFailure` hook for Bash to
 `~/.claude/settings.json`, keeping your other settings (backup in
-`settings.json.bak`). Running it again adds nothing twice.
+`settings.json.bak`). Running it again changes nothing.
 
 The hooks never change what Claude does: they print nothing, always exit 0, and
 do nothing outside agents this plugin opened. Inside those, they record the
 worktree as a git tree before and after each Bash call, using a temporary index
 so your staging area is untouched. The plugin diffs the two trees.
 
-To remove them:
-
-```sh
-sh hooks/claude-hooks.sh uninstall
-```
-
-Left behind, all harmless: `settings.json.bak`, event logs in
+Uninstall leaves behind, all harmless: `settings.json.bak`, event logs in
 `$TMPDIR/paseo-tool-ui/`, and snapshot objects in each repository's `.git` that
 `git gc` prunes.
 

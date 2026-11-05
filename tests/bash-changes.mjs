@@ -55,22 +55,37 @@ const big = fitRow({ files: [], fileCount: 1, patch: "+é line\n".repeat(20_000)
 assert.ok(Buffer.byteLength(JSON.stringify(big)) <= 60_000);
 assert.ok(big.truncated && big.patch.endsWith("\n"));
 
-// install/uninstall keep other settings, never duplicate, and remove every trace.
+// setup.sh adds and removes the plugin and hooks, keeps other settings, and never duplicates.
 const home = mkdtempSync(join(tmpdir(), "bash-changes-home-"));
 const settings = join(home, ".claude", "settings.json");
-const hooksScript = (mode) => execFileSync("sh", [join(hooks, "claude-hooks.sh"), mode], { env: { ...process.env, HOME: home } });
-execFileSync("mkdir", ["-p", join(home, ".claude")]);
+const bin = join(home, "bin");
+const calls = join(home, "paseo-calls");
+execFileSync("mkdir", ["-p", join(home, ".claude"), bin]);
+// Stub paseo: "installed" while the marker file exists, at this repository's path.
+writeFileSync(join(bin, "paseo"), `#!/bin/sh
+echo "$*" >> '${calls}'
+case "$2" in
+  ls) [ -f '${home}/installed' ] && echo '[{"path":"${join(hooks, "..")}"}]' || echo '[]' ;;
+  add) touch '${home}/installed' ;;
+  remove) rm '${home}/installed' ;;
+esac
+`, { mode: 0o755 });
+const setup = (mode) => execFileSync("sh", [join(hooks, "setup.sh"), mode], {
+  env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}` },
+});
 const original = { theme: "dark", hooks: { PreToolUse: [{ matcher: "Edit", hooks: [{ type: "command", command: "mine" }] }] } };
 writeFileSync(settings, JSON.stringify(original));
-hooksScript("install");
-hooksScript("install");
+setup("install");
+setup("install");
 const installed = JSON.parse(readFileSync(settings, "utf8"));
 assert.equal(installed.theme, "dark");
 assert.equal(installed.hooks.PreToolUse.length, 2);
 assert.equal(installed.hooks.PostToolUse.length, 1);
 assert.ok(existsSync(join(home, ".claude", "hooks", "paseo-tool-ui-snapshot.sh")));
-hooksScript("uninstall");
+setup("uninstall");
 assert.deepEqual(JSON.parse(readFileSync(settings, "utf8")), original);
 assert.equal(existsSync(join(home, ".claude", "hooks", "paseo-tool-ui-snapshot.sh")), false);
+assert.deepEqual(readFileSync(calls, "utf8").split("\n").filter((call) => !call.startsWith("plugin ls")),
+  ["plugin add https://github.com/dnntminh/paseo-tool-ui-plugin.git", "plugin remove paseo-tool-ui-plugin", ""]);
 
 console.log("bash-changes ok");

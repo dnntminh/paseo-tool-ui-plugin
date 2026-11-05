@@ -46,6 +46,7 @@ fi
 
 if [ "$mode" = uninstall ]; then
   rm -f "$script"
+  rmdir "$(dirname "$script")" 2>/dev/null || true # only when nothing else lives there
   [ -z "$(plugin_dir)" ] || paseo plugin remove "$id" </dev/null
 fi
 echo "$id: $mode done (settings backup: $settings.bak)"

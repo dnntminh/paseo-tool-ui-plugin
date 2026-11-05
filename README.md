@@ -16,26 +16,32 @@ the card remains mounted.
 
 ## Install
 
-Requires Paseo with plugin support on both the daemon and client, and `jq` and
-`git` on the daemon host. Run on the daemon host:
+Requires Paseo with plugin support on both the daemon and client. Bash changes
+also need `jq` and `git` on the daemon host.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s install
+paseo plugin add https://github.com/dnntminh/paseo-tool-ui-plugin.git
 ```
 
-This adds the plugin from GitHub (Paseo manages its own copy) and the Claude Code
-hooks for Bash changes. To remove both:
+Paseo manages its own copy, and its install also adds the Claude Code hooks for
+Bash changes (`hooks/setup.sh install`, rerun on every update).
+
+To uninstall, run this on the daemon host. It removes the hooks and the plugin:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s uninstall
 ```
+
+`paseo plugin remove` alone runs no plugin code, so it leaves the hooks in
+`~/.claude/settings.json`. They do nothing without the plugin; the command
+above cleans them up.
 
 In Paseo's appearance settings, select **Tool call display → Full detail** to
 show individual tool cards.
 
 ### Bash changes (Claude only)
 
-The install command copies `paseo-tool-ui-snapshot.sh` to `~/.claude/hooks/` and adds a
+The install copies `paseo-tool-ui-snapshot.sh` to `~/.claude/hooks/` and adds a
 `PreToolUse`, `PostToolUse` and `PostToolUseFailure` hook for Bash to
 `~/.claude/settings.json`, keeping your other settings (backup in
 `settings.json.bak`). Running it again changes nothing.

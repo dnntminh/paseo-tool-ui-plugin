@@ -9,6 +9,11 @@
       "ci",
       "--omit=dev",
       "--ignore-scripts"
+    ],
+    [
+      "sh",
+      "hooks/setup.sh",
+      "install"
     ]
   ]
 }

@@ -1,28 +1,25 @@
 #!/bin/sh
-# Installs or removes the whole plugin: the Paseo plugin plus the Claude Code hooks it needs.
-#   curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s install
+# install:   adds the Claude Code hooks for Bash diffs. Paseo runs it from paseo-plugin.json "build"
+#            on every plugin install and update, so `paseo plugin add` sets everything up.
+# uninstall: removes the hooks and the plugin, since `paseo plugin remove` runs no plugin code:
 #   curl -fsSL https://raw.githubusercontent.com/dnntminh/paseo-tool-ui-plugin/main/hooks/setup.sh | sh -s uninstall
 # Other settings in ~/.claude/settings.json are kept, and running install twice changes nothing.
 set -eu
 mode=${1:-}
 [ "$mode" = install ] || [ "$mode" = uninstall ] || { echo "usage: setup.sh install|uninstall" >&2; exit 2; }
-for tool in paseo jq git; do
-  command -v "$tool" >/dev/null || { echo "setup.sh: $tool is required" >&2; exit 1; }
-done
 id=paseo-tool-ui-plugin
 script="$HOME/.claude/hooks/paseo-tool-ui-snapshot.sh"
 settings="$HOME/.claude/settings.json"
 # Exits quietly when the script is gone, so leftover settings never break Claude.
 command="[ -x '$script' ] && '$script' || true"
-# </dev/null: when piped from curl, stdin is this script and must not be read by paseo.
-plugin_dir() { paseo plugin ls "$id" --json </dev/null 2>/dev/null | jq -r '.[0].path // empty' 2>/dev/null || true; }
 
 if [ "$mode" = install ]; then
-  [ -n "$(plugin_dir)" ] || paseo plugin add https://github.com/dnntminh/paseo-tool-ui-plugin.git </dev/null
-  dir=$(plugin_dir)
-  [ -n "$dir" ] || { echo "setup.sh: $id did not install" >&2; exit 1; }
+  # A missing tool skips only the Bash diffs; failing here would block the whole plugin install.
+  for tool in jq git; do
+    command -v "$tool" >/dev/null || { echo "$id: $tool not found, Bash diffs disabled" >&2; exit 0; }
+  done
   mkdir -p "$(dirname "$script")"
-  cp "$dir/hooks/paseo-tool-ui-snapshot.sh" "$script"
+  cp "$(dirname "$0")/paseo-tool-ui-snapshot.sh" "$script"
   chmod +x "$script"
   [ -f "$settings" ] || echo '{}' > "$settings"
 fi
@@ -47,6 +44,9 @@ fi
 if [ "$mode" = uninstall ]; then
   rm -f "$script"
   rmdir "$(dirname "$script")" 2>/dev/null || true # only when nothing else lives there
-  [ -z "$(plugin_dir)" ] || paseo plugin remove "$id" </dev/null
+  # </dev/null: when piped from curl, stdin is this script and must not be read by paseo.
+  if command -v paseo >/dev/null && paseo plugin ls "$id" --json </dev/null 2>/dev/null | grep -q '"path"'; then
+    paseo plugin remove "$id" </dev/null
+  fi
 fi
 echo "$id: $mode done (settings backup: $settings.bak)"

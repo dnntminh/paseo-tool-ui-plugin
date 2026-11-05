@@ -6,7 +6,10 @@
     "lib": [
       "ES2023"
     ],
-    "types": [],
+    "types": [
+      "react",
+      "node"
+    ],
     "allowJs": true,
     "jsx": "react-jsx",
     "strict": true,

@@ -2,5 +2,13 @@
   "id": "paseo-tool-ui-plugin",
   "requirements": {
     "paseo": "*"
-  }
+  },
+  "build": [
+    [
+      "npm",
+      "ci",
+      "--omit=dev",
+      "--ignore-scripts"
+    ]
+  ]
 }

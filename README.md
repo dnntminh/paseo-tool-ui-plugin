@@ -17,7 +17,7 @@ Requires Paseo with plugin support on both the daemon and client.
 Install directly from GitHub:
 
 ```sh
-paseo plugin add https://github.com/midodimori/paseo-tool-ui-plugin.git
+paseo plugin add https://github.com/dnntminh/paseo-tool-ui-plugin.git
 ```
 
 Paseo downloads and manages its own copy on the daemon host. No manual clone is needed.
